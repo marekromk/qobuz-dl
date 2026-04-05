@@ -1,6 +1,8 @@
 .flake8
 .gitignore
+AGENTS.md
 LICENSE
+QOBUZ_AUTH_ISSUE_REPORT.md
 README.md
 requirements.txt
 setup.py

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class Client:
-    def __init__(self, email, pwd, app_id, secrets):
+    def __init__(self, email, pwd, app_id, secrets, skip_auth=False):
         logger.info(f"{YELLOW}Logging...")
         self.secrets = secrets
         self.id = str(app_id)
@@ -38,8 +38,9 @@ class Client:
         )
         self.base = "https://www.qobuz.com/api.json/0.2/"
         self.sec = None
-        self.auth(email, pwd)
-        self.cfg_setup()
+        if not skip_auth:
+            self.auth(email, pwd)
+            self.cfg_setup()
 
     def api_call(self, epoint, **kwargs):
         if epoint == "user/login":
@@ -150,6 +151,7 @@ class Client:
         self.session.headers.update({"X-User-Auth-Token": self.uat})
         self.label = usr_info["user"]["credential"]["parameters"]["short_label"]
         logger.info(f"{GREEN}Membership: {self.label}")
+        self.cfg_setup()
 
     def multi_meta(self, epoint, key, id, type):
         total = 1

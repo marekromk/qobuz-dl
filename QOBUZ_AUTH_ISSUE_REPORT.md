@@ -133,3 +133,28 @@ Then run qobuz-dl as normal.
 ### Related Tools Status
 - qobuz-api-rust: Author only tested token-based auth (email/password untested)
 - QobuzDownloaderX-MOD: May have working solution (C# project, check their approach)
+- streamrip: Token auth works, but downloads fail with IncompleteRead (CDN/streaming issue)
+
+## Implementation Status (April 5, 2026)
+
+### ✅ Completed
+- Token-based login (`user_id` + `user_auth_token`) implemented and tested
+- Login succeeds: "Membership: Studio" confirmed working
+- CLI updated to support token config
+
+### ❌ Remaining
+- **Download signatures broken**: Qobuz changed signature algorithm
+- New signature uses SHA256 + HKDF crypto (complex browser-based key derivation)
+- `track/getFileUrl` returns 400 "Invalid Request Signature"
+
+### Root Cause
+Qobuz updated their API security:
+1. Email/password auth: DEPRECATED (returns 401)
+2. Token auth: WORKS for login, metadata
+3. Request signatures: CHANGED from MD5 to SHA256+HKDF
+
+### Next Steps to Fully Fix
+1. Reverse-engineer web player's `genSignedRequest()` function
+2. Extract `window.rng.prototype.initialization()` value
+3. Implement HKDF key derivation in Python
+4. OR use browser automation to fetch signed URLs
