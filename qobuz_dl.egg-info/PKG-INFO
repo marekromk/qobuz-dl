@@ -1,4 +1,4 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: qobuz-dl
 Version: 0.9.9.10
 Summary: The complete Lossless and Hi-Res music downloader for Qobuz
@@ -11,6 +11,23 @@ Classifier: Operating System :: OS Independent
 Requires-Python: >=3.6
 Description-Content-Type: text/markdown
 License-File: LICENSE
+Requires-Dist: pathvalidate
+Requires-Dist: requests
+Requires-Dist: mutagen
+Requires-Dist: tqdm
+Requires-Dist: pick==1.6.0
+Requires-Dist: beautifulsoup4
+Requires-Dist: colorama
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
 
 # qobuz-dl
 Search, explore and download Lossless and Hi-Res music from [Qobuz](https://www.qobuz.com/). It *just works*™ (2025).
