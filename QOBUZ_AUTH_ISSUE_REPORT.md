@@ -102,6 +102,34 @@ The web player bundle.js contains evidence of new signature mechanism:
 2. **Extract auth token from browser** using DevTools/mitmproxy and use `login_with_token`
 3. **Wait for upstream projects** to release a fix (qobuz-api-rust, streamrip, etc.)
 
+## WORKAROUND: Token-Based Authentication
+
+QobuzDownloaderX-MOD uses an alternate login method that bypasses the broken email/password auth.
+
+### How to Get Your Token
+
+1. **Open Qobuz Web Player**: Go to https://play.qobuz.com/ and log in with your credentials
+2. **Open DevTools**: Press F12 (or Cmd+Option+I on Mac)
+3. **Go to Application tab**: Click on "Application" in DevTools
+4. **Navigate to Local Storage**: Expand "Storage" → "Local Storage" → "https://play.qobuz.com"
+5. **Find `localuser`**: Click on it to see the stored data
+6. **Copy these values**:
+   - `id` → This is your `user_id`
+   - `token` → This is your `user_auth_token`
+
+### How to Configure qobuz-dl
+
+Edit your config file (`~/.config/qobuz-dl/config.ini`) and add:
+
+```ini
+user_id = YOUR_USER_ID_HERE
+user_auth_token = YOUR_TOKEN_HERE
+```
+
+Leave `email` and `password` empty or as-is.
+
+Then run qobuz-dl as normal.
+
 ### Related Tools Status
 - qobuz-api-rust: Author only tested token-based auth (email/password untested)
 - QobuzDownloaderX-MOD: May have working solution (C# project, check their approach)
