@@ -1,0 +1,7 @@
+beautifulsoup4
+colorama
+mutagen
+pathvalidate
+pick==1.6.0
+requests
+tqdm
