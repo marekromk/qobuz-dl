@@ -82,3 +82,26 @@ This suggests **token-based authentication may be the only working method** now.
 1. Extract a valid `user_auth_token` from browser traffic or Qobuz web app
 2. Implement token-based login in qobuz-dl
 3. Store and refresh user tokens (they may expire)
+
+## Extended Investigation (April 5, 2026)
+
+### Tested and Failed
+- GET vs POST for /user/login: Both return 401
+- Adding `device_manufacturer_id` (79d511e3-9a3f-4a78-baaa-89e2d78fed83): Still 401
+- Different password formats (plain, MD5, SHA256): All return 401
+- Fresh credentials from web player bundle.js: Still 401
+
+### Key Discovery: Request Signing
+The web player bundle.js contains evidence of new signature mechanism:
+- Uses `_raw_sig`, `sha256`, and `_requestIdentifier` for request signing
+- The `/user/login` endpoint appears to require this signature
+- Simple username/password POST is no longer sufficient
+
+### Possible Solutions
+1. **Reverse engineer the new signature algorithm** from web player's JavaScript
+2. **Extract auth token from browser** using DevTools/mitmproxy and use `login_with_token`
+3. **Wait for upstream projects** to release a fix (qobuz-api-rust, streamrip, etc.)
+
+### Related Tools Status
+- qobuz-api-rust: Author only tested token-based auth (email/password untested)
+- QobuzDownloaderX-MOD: May have working solution (C# project, check their approach)
