@@ -307,6 +307,66 @@ class QobuzDL:
         logger.info(f"{GREEN}OAuth login successful!")
         self.save_oauth_token_to_config(CONFIG_FILE)
 
+    def get_oauth_login_code(self):
+        import socket
+        import threading
+        from http.server import HTTPServer, BaseHTTPRequestHandler
+        from urllib.parse import urlparse, parse_qs
+
+        # Find available port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('', 0))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            port = s.getsockname()[1]
+
+        oauth_url = (
+            f"https://www.qobuz.com/signin/oauth"
+            f"?ext_app_id={self.app_id}"
+            f"&redirect_url=http://localhost:{port}"
+        )
+
+        class OAuthHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                parsed = urlparse(self.path)
+                params = parse_qs(parsed.query)
+                auth_code = params.get("code", [params.get("code_autorisation", [""])[0]])[0]
+                if auth_code:
+                    OAuthHandler.auth_code = auth_code
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(b"<html><body style='font-family:system-ui;text-align:center;padding:60px'><h2>Login successful</h2><p>You can close this tab and return to your terminal.</p></body></html>")
+                else:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b"<html><body><h2>Login failed</h2></body></html>")
+
+            def log_message(self, format, *args):
+                pass
+
+        OAuthHandler.auth_code = None
+
+        logger.info(f"{YELLOW}Open this URL in your browser to authenticate with Qobuz:")
+        logger.info(f"{CYAN}{oauth_url}{RESET}")
+        logger.info(
+            f"{YELLOW}A local server on port {port} will capture the OAuth code automatically."
+        )
+
+        server = HTTPServer(('127.0.0.1', port), OAuthHandler)
+        thread = threading.Thread(target=server.handle_request)
+        thread.start()
+
+        input(f"{YELLOW}Press Enter after completing login in your browser...")
+
+        server.server_close()
+        thread.join()
+
+        if OAuthHandler.auth_code:
+            return OAuthHandler.auth_code
+        else:
+            logger.error(f"{RED}No OAuth code received. Please try again.")
+            return
+
     def lucky_mode(self, query, download=True):
         if len(query) < 3:
             logger.info(f"{RED}Your search query is too short or invalid")
