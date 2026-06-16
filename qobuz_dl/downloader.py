@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from typing import Tuple
 
 import requests
@@ -114,6 +115,8 @@ class Download:
         media_numbers = [track["media_number"] for track in meta["tracks"]["items"]]
         is_multiple = True if len([*{*media_numbers}]) > 1 else False
         for i in meta["tracks"]["items"]:
+            if count > 0:
+                time.sleep(1)  # brief pause between tracks to avoid CDN rate limiting
             parse = self.client.get_track_url(i["id"], fmt_id=self.quality)
             if "sample" not in parse and parse["sampling_rate"]:
                 is_mp3 = True if int(self.quality) == 5 else False
@@ -222,7 +225,49 @@ class Download:
             logger.info(f"{OFF}{track_title} was already downloaded")
             return
 
-        tqdm_download(url, filename, filename)
+        max_retries = 5
+        last_error = None
+        for attempt in range(max_retries):
+            if attempt > 0:
+                wait = 2 ** attempt  # 2, 4, 8, 16 seconds
+                logger.warning(
+                    f"{YELLOW}Network error, retrying in {wait}s "
+                    f"(attempt {attempt + 1}/{max_retries})..."
+                )
+                time.sleep(wait)
+                if os.path.isfile(filename):
+                    os.remove(filename)
+                # Re-fetch a fresh download URL — the CDN rejects reused/stale URLs
+                try:
+                    fresh_url_dict = self.client.get_track_url(
+                        track_metadata["id"], fmt_id=self.quality
+                    )
+                    url = fresh_url_dict["url"]
+                except Exception as url_err:
+                    logger.warning(f"{YELLOW}Could not refresh URL: {url_err}")
+            try:
+                tqdm_download(url, filename, filename)
+                break
+            except (
+                requests.exceptions.ChunkedEncodingError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                ConnectionError,
+                OSError,
+            ) as e:
+                last_error = e
+                logger.warning(
+                    f"{YELLOW}Download attempt {attempt + 1} failed: {e}"
+                )
+        else:
+            logger.error(
+                f"{RED}Failed to download {track_title} after {max_retries} "
+                f"attempts (CDN issue). Skipping track..."
+            )
+            if os.path.isfile(filename):
+                os.remove(filename)
+            return
+
         tag_function = metadata.tag_mp3 if is_mp3 else metadata.tag_flac
         try:
             tag_function(
@@ -306,7 +351,7 @@ class Download:
 
 
 def tqdm_download(url, fname, desc):
-    r = requests.get(url, allow_redirects=True, stream=True)
+    r = requests.get(url, allow_redirects=True, stream=True, timeout=(10, 60))
     total = int(r.headers.get("content-length", 0))
     download_size = 0
     with open(fname, "wb") as file, tqdm(
@@ -321,10 +366,10 @@ def tqdm_download(url, fname, desc):
             size = file.write(data)
             bar.update(size)
             download_size += size
-
-    if total != download_size:
-        # https://stackoverflow.com/questions/69919912/requests-iter-content-thinks-file-is-complete-but-its-not
-        raise ConnectionError("File download was interrupted for " + fname)
+    if download_size < total:
+        raise ConnectionError(
+            f"Incomplete download ({download_size}/{total} bytes) for {fname}"
+        )
 
 
 def _get_description(item: dict, track_title, multiple=None):
